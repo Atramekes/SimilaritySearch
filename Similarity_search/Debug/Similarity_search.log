@@ -1,0 +1,6 @@
+﻿  Similarity_search.cpp
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(136,30): warning C4018: “<”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(138,34): warning C4018: “<”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(339,18): warning C4018: “<”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(385,18): warning C4018: “<”: 有符号/无符号不匹配
+  Similarity_search.vcxproj -> D:\Summer\Similarity_search\Debug\Similarity_search.exe
