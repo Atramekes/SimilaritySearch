@@ -45,7 +45,6 @@ public:
 
     void getTokens() {
         for (vector<string>::size_type i = 0; i != words.size(); i++) {
-            //cout << words[i] << endl;
             if (words[i] == " ") { //filter
                 continue;
             }
@@ -141,18 +140,6 @@ public:
         return ans;
     }
 
-    void disp(int n) {
-        for (size_t i = 0; i < n; i++)
-        {
-            for (size_t j = 0; j < n; j++)
-            {
-                if (map[i][j] >= 400) {
-                    cout << i << " " << j << " " << map[i][j] << endl;
-                }
-
-            }
-        }
-    }
 };
 
 struct SegmentTree2DNode {
@@ -191,20 +178,42 @@ void genWindow(unsigned indx1, unsigned indx2, Document d, vector<Window>* w, un
     for (size_t i = 0; i < loc.size(); i++)
     {
         unsigned x, y;
-        for (x = 0; x < loc.at(1); x++)
+        x = indx1;
+        if (i + 1 >= loc.size()) {
+            y = indx2;
+        }
+        else
+        {
+            y = loc.at(i + 1);
+        }
+        Window* win = new Window(x, y, loc, i + 1, minVal);
+        w->push_back(*win);
+
+        /* 以下是全枚举，数据太大
+        for (x = 0; x < loc.at(0); x++)
         {
             if (i + 1 >= loc.size()) {
-                break;
-            }
-            for (y = loc.at(i); y < loc.at(i + 1); y++)
-            {
-                if (y < ssh + x) {
-                    continue;
+                for (y = loc.at(i); y <= indx2; y++)
+                {
+                    if (y < ssh + x) {
+                        continue;
+                    }
+                    Window* win = new Window(x, y, loc, i + 1, minVal);
+                    w->push_back(*win);
                 }
-                Window* win = new Window(x, y, loc, i + 1, minVal);
-                w->push_back(*win);
+            }else{
+                for (y = loc.at(i); y < loc.at(i + 1); y++)
+                {
+                    if (y < ssh + x) {
+                        continue;
+                    }
+                    Window* win = new Window(x, y, loc, i + 1, minVal);
+                    w->push_back(*win);
+                }
             }
+            
         }
+        */
     }
 
     if (loc.at(0) > 0) {   
@@ -454,26 +463,8 @@ void compareSimilarity(Document d1, Document d2, int seed, vector<WindowPair> &v
             {
                 break;
             }
-        }/*
-        if (i1 != lastI1 || i2 != lastI2) {
-            Window* w = new Window();
-            w->indx1 = i1;
-            w->indx2 = i2;
-            w->center = i;
-            w->hashValue = value;
-            w2.push_back(*w);
-        } 
-        lastI1 = i1;
-        lastI2 = i2;*/
+        }
     }
-    /*
-    for (vector<Window>::size_type i = 0; i != w1.size(); i++) {
-        cout << " [ "<< w1[i].indx1 << " , " << w1[i].indx2 << " ] " << w1[i].hashValue << endl;
-    }
-    cout << "##############################" << endl;
-    for (vector<Window>::size_type i = 0; i != w2.size(); i++) {
-        cout << " [ " << w2[i].indx1 << " , " << w2[i].indx2 << " ] " << w2[i].hashValue << endl;
-    }*/
     int ct = 0;
     for (vector<Window>::size_type i = 0; i != w1.size(); i++) {
         for (vector<Window>::size_type j = 0; j != w2.size(); j++) {
@@ -487,7 +478,38 @@ void compareSimilarity(Document d1, Document d2, int seed, vector<WindowPair> &v
     }
 
 
-    //cout << "total cash:" << ct << endl;
+}
+
+void calSimilarity(Document d1, Document d2, int seed, vector<WindowPair>* vp, int ssh) {
+    //新方法比较相似度
+    vector<Token>::size_type l1, l2;
+    l1 = d1.tokens.size();
+    l2 = d2.tokens.size();
+    //get hash value for all tokens
+    for (vector<Token>::size_type i = 0; i != l1; i++) {
+        d1.tokens[i].hashValue = RanHash(d1.tokens[i].content, seed);
+    }
+    for (vector<Token>::size_type i = 0; i != l2; i++) {
+        d2.tokens[i].hashValue = RanHash(d2.tokens[i].content, seed);
+    }
+
+    vector<Window>* gw1 = new vector<Window>;
+    vector<Window>* gw2 = new vector<Window>;
+
+    genWindow(0, l1 - 1, d1, gw1, ssh);
+    genWindow(0, l2 - 1, d2, gw2, ssh);
+    for (vector<Window>::size_type i = 0; i < gw1->size(); i++)
+    {
+        for (vector<Window>::size_type j = 0; j < gw2->size(); j++)
+        {
+            if (gw1->at(i).hashValue == gw2->at(j).hashValue && gw1->at(i).k == gw2->at(j).k)
+            {
+                WindowPair* wp = new WindowPair(gw1->at(i).indx1, gw1->at(i).indx2, gw2->at(j).indx1, gw2->at(j).indx2);
+                vp->push_back(*wp);
+                //cout << " [ " << gw1->at(i).indx1 << " , " <<gw1->at(i).indx2<< " ] " <<" , " << " [ " << gw2->at(j).indx1 << " , " <<  gw2->at(j).indx2<< " ] " << endl;
+            }
+        }
+    }
 }
 
 int main()
@@ -496,34 +518,17 @@ int main()
     string command;
     vector<Document> dataDocuments;
     vector<WindowPair> resultPairs;
+    ofstream logifs;
+    logifs.open("log.txt", ios::out);
     cout << "Welcome\n";
     while (true)    
     {
         cin >> command;
-        if (command == "test")
-        {
-            resultPairs.clear();
-            for (size_t i = 0; i < 100; i++)
-            {
-                compareSimilarity(dataDocuments[0], dataDocuments[1], i, resultPairs, 5);
-            }
-            CrashMap *cm = new CrashMap();
-            cm->init();
-            for (vector<WindowPair>::size_type i = 0; i != resultPairs.size(); i++) {
-                cm->addArea(resultPairs[i]);
-                //cout << " [ " << resultPairs[i].a1<< " , " << resultPairs[i].a2 << " ] " << " [ " << resultPairs[i].b1 << " , " << resultPairs[i].b2 << " ] "<< endl;
-            }
-            SegmentTree2DNode* t = new SegmentTree2DNode();
-            build2DTree(t, 0, 800, 0, 800, cm->map);
-            
-            cm->disp(200);
-            cout << query2DTree(t, 40, 55, 66, 74);
-        }
-
-        else if (command == "load")
-        {
+        if (command == "load")
+        {   //从数据集读入documents
             ifstream ifs;
-            ifs.open("test.txt", ios::in);//reut2-000.sgm
+            
+            ifs.open("test.txt", ios::in);//reut2-000.sgm //test是两篇文章；reut2-000.sgm是下载的数据集
             if (!ifs.is_open()) {
                 cout << "file open error" << endl;
             }
@@ -553,32 +558,42 @@ int main()
                     }
                 }
                 ifs.close();
+                logifs << "※Reading file complete." << endl;
             }
         }
-        else if (command == "neww")
-        {
+        else if (command == "test")
+        {   //测试，比较document 1和2的相似度
             vector<Window>* gw1 = new vector<Window>;
             vector<Window>* gw2 = new vector<Window>;
-            genWindow(0, dataDocuments[0].words.size() - 1, dataDocuments[0], gw1, 3);
-            genWindow(0, dataDocuments[1].words.size() - 1, dataDocuments[1], gw2, 3);
+            vector<WindowPair>* crashPairs = new vector<WindowPair>;
+
+            
+            int crashTime = 10; //对两document一共进行crashTime次冲突
+            for (size_t t = 0; t < crashTime; t++)
+            {
+                logifs << "※Crash round " << t << endl;
+                calSimilarity(dataDocuments[0], dataDocuments[1], t + 1, crashPairs, 3);
+            }
             CrashMap* cm = new CrashMap();
             cm->init();
-            for (vector<Window>::size_type i = 0; i < gw1->size(); i++)
-            {
-                for (vector<Window>::size_type j = 0; j < gw2->size(); j++)
-                {
-                    if (gw1->at(i).hashValue == gw2->at(j).hashValue)
-                    {
-                        WindowPair* wp = new WindowPair(gw1->at(i).indx1, gw1->at(i).indx2, gw2->at(j).indx1, gw2->at(j).indx2);
-                        cm->addArea(*wp);  
-                    }
-                    
-                }
+            for (vector<WindowPair>::size_type i = 0; i != crashPairs->size(); i++) {
+                cm->addArea(crashPairs->at(i));
             }
+            SegmentTree2DNode* t = new SegmentTree2DNode();
+            int l = dataDocuments[0].tokens.size();
+            if (l < dataDocuments[1].tokens.size()) {
+                l = dataDocuments[1].tokens.size();
+            }
+            build2DTree(t, 0, l, 0, l, cm->map);
+            
+            
+            cout << query2DTree(t, 40, 55, 66, 74);
+
 
         }
         else if (command == "tree")
         {
+            //仅对2D片段树进行测试
             static int a[maxLen][maxLen];
             for (size_t i = 0; i < maxLen; i++)
             {
@@ -593,6 +608,7 @@ int main()
         }
         else if (command == "quit")
         {
+            logifs.close();
             break;
         }
         else {
