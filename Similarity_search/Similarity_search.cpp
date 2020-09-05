@@ -3,9 +3,60 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 #define maxLen 1000
 
 using namespace std;
+
+unordered_map<int, vector<int>> whv;
+unordered_map<string, int> dictionary; //将token映射为token id
+unordered_map<int, int> wordcount;
+
+
+void SplitString(const string& s, vector<string>& v, const string& delim) {
+    //将字符串s以字符c为分割符切割，结果保存于向量v
+    string::size_type head, tail;
+    tail = s.find(delim);
+    head = 0;
+    while (string::npos != tail) {
+        v.push_back(s.substr(head, tail - head));
+        head = tail + delim.size();
+        tail = s.find(delim, head);
+    }
+    if (head != s.length()) {
+        v.push_back(s.substr(head));
+    }
+}
+
+void strToTokens(const string& s, vector<string>& res, const string& delims) {
+    string::size_type begIdx, endIdx;
+    begIdx = s.find_first_not_of(delims);
+    while (begIdx != string::npos) {
+        endIdx = s.find_first_of(delims, begIdx);
+        if (endIdx == string::npos)
+            endIdx = s.length();
+        res.push_back(s.substr(begIdx, endIdx - begIdx));
+        begIdx = s.find_first_not_of(delims, endIdx);
+    }
+}
+
+
+void wordmaxcount(vector<int>& doc, unordered_map<int, int>& wordcount)
+{
+    cout << "doc:" << endl;
+    unordered_map<int, int> doccount;
+    for (auto& entry : doc)
+    {
+        //cout << entry << " ";
+        doccount[entry] += 1;
+    }
+    for (auto& entry : doccount) {
+        if (wordcount[entry.first] < entry.second)
+            wordcount[entry.first] = entry.second;
+    }
+    cout << endl;
+}
 
 
 class Token {
@@ -18,43 +69,51 @@ public:
     }
 };
 
-void SplitString(const string& s, vector<string>& v, const string& c) {
-    //将字符串s以字符c为分割符切割，结果保存于向量v
-    string::size_type head, tail;
-    tail = s.find(c);
-    head = 0;
-    while (string::npos != tail) {
-        v.push_back(s.substr(head, tail - head));
-        head = tail + c.size();
-        tail = s.find(c, head);
+void wordtoint(vector<Token> tokens, vector<int>& doc)
+{
+    string str;
+    for (vector<Token>::size_type i = 0; i != tokens.size(); i++) {
+        {
+            str = tokens[i].content;
+            if (dictionary.find(str) == dictionary.end())
+            {
+                int newid = dictionary.size();
+                dictionary[str] = newid;
+            }
+            doc.push_back(dictionary[str]);
+        }
     }
-    if (head != s.length()) {  
-        v.push_back(s.substr(head));
-    }
-}  
- 
+}
 
-class Document {
+class Document {  
     //文章对象，一个document保存一系列token
 public:
     vector<Token> tokens;
     vector<string> words;
-    void getWords(string text) {
-        SplitString(text, this->words, " ");
-    }
-
-    void getTokens() {
-        for (vector<string>::size_type i = 0; i != words.size(); i++) {
-            if (words[i] == " ") { //filter
-                continue;
+    vector<int> doc;
+    string cleaned(string str) {
+        string cl;
+        cl.assign(str);
+        for (int i = 0; i < cl.length(); i++)
+        {
+            cl[i] = tolower(cl[i]);
+            if (!isalnum(cl[i])) {
+                cl[i] = ' ';
             }
-            Token *t = new Token(words[i]);
-            tokens.push_back(*t);
         }
+        return cl;
     }
     Document(string text) {
-        getWords(text);
-        getTokens();
+        SplitString(cleaned(text), this->words, " ");
+        for (vector<string>::size_type i = 0; i != words.size(); i++) {
+            if (words[i] == "") { //filter
+                continue;
+            }
+            Token* t = new Token(words[i]);
+            tokens.push_back(*t);
+        }
+        wordtoint(tokens,doc);
+        wordmaxcount(doc, wordcount);
     }
     void display() {
         for (vector<Token>::size_type i = 0; i != tokens.size(); i++) {
@@ -63,8 +122,19 @@ public:
     }
 };
 
+class CompactWindow {
+public:
+    int left;
+    int eos;
+    int right;
+    vector<int> c;
+    int hval;// hash value
+    CompactWindow(int indx1, int eos,int indx2, vector<int> c,int hv)
+        : left(indx1), eos(eos), right(indx2), c(c), hval(hv) { }
+};
+
+
 class Window {
-    //窗口对象，包含起始位置indx1和结束位置indx2，保存决定该窗口哈希值的centerWord的所有位置向量，跨越centerWord数量k，和哈希值
 public:
     unsigned indx1;
     unsigned indx2;
@@ -155,75 +225,74 @@ struct SegmentTree2DNode {
     SegmentTree2DNode* rd;
 };
 
-void genWindow(unsigned indx1, unsigned indx2, Document d, vector<Window>* w, unsigned ssh) {
-    //新的生成窗口的方法。暴力枚举了所有子窗口
-    if (indx2 < ssh + indx1) {
+
+int uni_hash(int val, int a, int b)
+{
+  return abs(a * val + b);
+}
+
+
+void conquer(vector<int> doc,int indx1, int eos, int indx2, unordered_map<int, vector<int>> whv, vector<CompactWindow>& results) {
+    unordered_map<int, int> freq;
+    int minval = 0x7fffffff; 
+    int p = -1; //第p个min word取min-hash
+    int minword = -1; 
+
+    if (indx1 > eos || indx2 - indx1 <= 0) {
         return;
     }
-    int minVal, value;
-    vector<unsigned> loc;
-    minVal = RAND_MAX;
-    for (vector<Token>::size_type i = indx1; i <= indx2; i++) {
-        value = d.tokens[i].hashValue;
-        if (value < minVal) {
-            loc.clear();
-            loc.push_back(i);
-            minVal = value;
-        }
-        else if (value == minVal) {
-            loc.push_back(i);
+    for (int i = indx1; i <= indx2; i++)
+    {
+        int j = freq[doc[i]];
+        freq[doc[i]] += 1;
+        int hv = whv[doc[i]][j];
+
+        if (hv < minval)
+        {
+            minval = hv;
+            p = j;
+            minword = doc[i];
         }
     }
-
-    for (size_t i = 0; i < loc.size(); i++)
+    p = p + 1;
+    vector<int> pos;
+    for (int i = indx1; i <= indx2; i++)
     {
-        unsigned x, y;
-        x = indx1;
-        if (i + 1 >= loc.size()) {
-            y = indx2;
+        if (doc[i] == minword)
+        {
+            pos.push_back(i);
+        }
+    }
+    int q = pos.size();
+    cout << indx1 << " " << eos << " " << indx2 << " " << endl;
+    results.push_back(CompactWindow(indx1, eos, indx2, pos, minval));
+    for (size_t k = 0; k <= q - p; k++)
+    {
+        int left;
+        if (k == 0) {
+            left = indx1;
         }
         else
         {
-            y = loc.at(i + 1);
+            left = pos.at(k - 1) + 1;
         }
-        Window* win = new Window(x, y, loc, i + 1, minVal);
-        w->push_back(*win);
-
-        /* 以下是全枚举，数据太大
-        for (x = 0; x < loc.at(0); x++)
+        if (eos >= pos.at(k))
         {
-            if (i + 1 >= loc.size()) {
-                for (y = loc.at(i); y <= indx2; y++)
-                {
-                    if (y < ssh + x) {
-                        continue;
-                    }
-                    Window* win = new Window(x, y, loc, i + 1, minVal);
-                    w->push_back(*win);
-                }
-            }else{
-                for (y = loc.at(i); y < loc.at(i + 1); y++)
-                {
-                    if (y < ssh + x) {
-                        continue;
-                    }
-                    Window* win = new Window(x, y, loc, i + 1, minVal);
-                    w->push_back(*win);
-                }
+            if (pos.at(k) > pos.at(k + p - 1) - 1) { //保证eos不大于indx2
+                conquer(doc, left, pos.at(k + p - 1) - 1, pos.at(k + p - 1) - 1, whv, results);
+            }
+            else {
+                conquer(doc, left, pos.at(k), pos.at(k + p - 1) - 1, whv, results);
             }
             
         }
-        */
+        else
+        {
+            conquer(doc, left, eos, pos.at(k + p - 1) - 1, whv, results);
+            return;
+        }
     }
-
-    if (loc.at(0) > 0) {   
-        genWindow(indx1, loc.at(0) - 1, d, w, ssh);
-    }
-    if (loc.at(0) < indx2) {
-        genWindow(loc.at(0) + 1, indx2, d, w, ssh);
-    }
-
-
+    conquer(doc, pos.at(q - p) + 1, indx2, indx2, whv, results);
 }
 
 void build2DTree(SegmentTree2DNode* t,int a1,int a2,int b1,int b2,int vals[maxLen][maxLen]) {
@@ -480,36 +549,32 @@ void compareSimilarity(Document d1, Document d2, int seed, vector<WindowPair> &v
 
 }
 
-void calSimilarity(Document d1, Document d2, int seed, vector<WindowPair>* vp, int ssh) {
+void calSimilarity(Document d1, Document d2, int shuffleTimes, vector<WindowPair>* vp, int ssh) {
     //新方法比较相似度
-    vector<Token>::size_type l1, l2;
-    l1 = d1.tokens.size();
-    l2 = d2.tokens.size();
-    //get hash value for all tokens
-    for (vector<Token>::size_type i = 0; i != l1; i++) {
-        d1.tokens[i].hashValue = RanHash(d1.tokens[i].content, seed);
-    }
-    for (vector<Token>::size_type i = 0; i != l2; i++) {
-        d2.tokens[i].hashValue = RanHash(d2.tokens[i].content, seed);
-    }
-
-    vector<Window>* gw1 = new vector<Window>;
-    vector<Window>* gw2 = new vector<Window>;
-
-    genWindow(0, l1 - 1, d1, gw1, ssh);
-    genWindow(0, l2 - 1, d2, gw2, ssh);
-    for (vector<Window>::size_type i = 0; i < gw1->size(); i++)
+    vector<CompactWindow> results;
+    for (size_t k = 0; k < shuffleTimes; k++)
     {
-        for (vector<Window>::size_type j = 0; j < gw2->size(); j++)
+        srand(k);
+        whv.clear();
+        int a = 0;
+        while (a == 0)
+            a = rand();
+        int b = rand();
+        int totalwords = dictionary.size();
+        for (auto& entry : wordcount)
         {
-            if (gw1->at(i).hashValue == gw2->at(j).hashValue && gw1->at(i).k == gw2->at(j).k)
+            for (auto i = 0; i < entry.second; i++)
             {
-                WindowPair* wp = new WindowPair(gw1->at(i).indx1, gw1->at(i).indx2, gw2->at(j).indx1, gw2->at(j).indx2);
-                vp->push_back(*wp);
-                //cout << " [ " << gw1->at(i).indx1 << " , " <<gw1->at(i).indx2<< " ] " <<" , " << " [ " << gw2->at(j).indx1 << " , " <<  gw2->at(j).indx2<< " ] " << endl;
+                int wid = i * totalwords + entry.first;
+                int hv = uni_hash(wid, a, b);
+                whv[entry.first].push_back(hv);
             }
         }
+        conquer(d1.doc, 0, d1.doc.size(), d1.doc.size() - 1, whv, results);
+        conquer(d2.doc, 0, d2.doc.size(), d2.doc.size() - 1, whv, results);
     }
+
+   
 }
 
 int main()
@@ -606,10 +671,40 @@ int main()
             build2DTree(t, 0, 800, 0, 800, a);
             cout << query2DTree(t, 3, 637, 101, 784);
         }
+        else if (command == "cc") {
+            vector<int> vi = { 1,2,3,4,3,5,3,1,2,2,3,5,5,3,1 };
+            whv[1].push_back(89);
+            whv[1].push_back(83);
+            whv[1].push_back(98);
+            whv[2].push_back(69);
+            whv[2].push_back(68);
+            whv[2].push_back(66);
+            whv[3].push_back(43);
+            whv[3].push_back(93);
+            whv[3].push_back(3);
+            whv[3].push_back(57);
+            whv[3].push_back(33);
+            whv[4].push_back(23);
+            whv[5].push_back(71);
+            whv[5].push_back(72);
+            whv[5].push_back(73);
+            vector<CompactWindow> res;
+            conquer(vi, 0, 14, 14, whv, res);
+        }
+        else if (command == "rand")
+        {
+            srand(0);
+            int a = 0;
+            while (a == 0)
+                a = rand();
+            int b = rand();
+            cout << a << endl;
+            cout << b << endl;
+        }
         else if (command == "quit")
         {
-            logifs.close();
-            break;
+        logifs.close();
+        break;
         }
         else {
             cout << "wrong command" << endl;
