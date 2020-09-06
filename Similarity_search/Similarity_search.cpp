@@ -44,7 +44,7 @@ void strToTokens(const string& s, vector<string>& res, const string& delims) {
 
 void wordmaxcount(vector<int>& doc, unordered_map<int, int>& wordcount)
 {
-    cout << "doc:" << endl;
+    //cout << "doc:" << endl;
     unordered_map<int, int> doccount;
     for (auto& entry : doc)
     {
@@ -55,7 +55,7 @@ void wordmaxcount(vector<int>& doc, unordered_map<int, int>& wordcount)
         if (wordcount[entry.first] < entry.second)
             wordcount[entry.first] = entry.second;
     }
-    cout << endl;
+    //cout << endl;
 }
 
 
@@ -127,10 +127,12 @@ public:
     int left;
     int eos;
     int right;
-    vector<int> c;
+    vector<int> loc;
     int hval;// hash value
-    CompactWindow(int indx1, int eos,int indx2, vector<int> c,int hv)
-        : left(indx1), eos(eos), right(indx2), c(c), hval(hv) { }
+    int id=0;
+    
+    CompactWindow(int indx1, int eos,int indx2, vector<int> loc,int hv)
+        : left(indx1), eos(eos), right(indx2), loc(loc), hval(hv) { }
 };
 
 
@@ -551,7 +553,8 @@ void compareSimilarity(Document d1, Document d2, int seed, vector<WindowPair> &v
 
 void calSimilarity(Document d1, Document d2, int shuffleTimes, vector<WindowPair>* vp, int ssh) {
     //新方法比较相似度
-    vector<CompactWindow> results;
+    vector<CompactWindow> cw1;
+    vector<CompactWindow> cw2;
     for (size_t k = 0; k < shuffleTimes; k++)
     {
         srand(k);
@@ -570,8 +573,9 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, vector<WindowPair
                 whv[entry.first].push_back(hv);
             }
         }
-        conquer(d1.doc, 0, d1.doc.size(), d1.doc.size() - 1, whv, results);
-        conquer(d2.doc, 0, d2.doc.size(), d2.doc.size() - 1, whv, results);
+        conquer(d1.doc, 0, d1.doc.size(), d1.doc.size() - 1, whv, cw1);
+        conquer(d2.doc, 0, d2.doc.size(), d2.doc.size() - 1, whv, cw2);
+
     }
 
    
