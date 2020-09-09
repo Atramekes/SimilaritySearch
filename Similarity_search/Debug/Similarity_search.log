@@ -1,8 +1,11 @@
 ﻿  Similarity_search.cpp
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(83,27): warning C4018: “<”: 有符号/无符号不匹配
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(251,26): warning C4018: “<=”: 有符号/无符号不匹配
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(460,18): warning C4018: “<”: 有符号/无符号不匹配
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(506,18): warning C4018: “<”: 有符号/无符号不匹配
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(623,34): warning C4018: “<”: 有符号/无符号不匹配
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(635,19): warning C4018: “<”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(261,26): warning C4018: “<=”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(470,26): warning C4018: “<”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(491,13): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(502,30): warning C4018: “<=”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(514,35): warning C4018: “<=”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(516,39): warning C4018: “<=”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(545,38): warning C4018: “<=”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(557,43): warning C4018: “<=”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(559,47): warning C4018: “<=”: 有符号/无符号不匹配
   Similarity_search.vcxproj -> D:\Summer\Similarity_search\Debug\Similarity_search.exe
