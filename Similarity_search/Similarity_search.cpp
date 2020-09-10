@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <windows.h>
-#define maxLen 1000
+#define maxLen 500
 
 using namespace std;
 
@@ -351,6 +351,8 @@ void build2DTree(SegmentTree2DNode* t,int a1,int a2,int b1,int b2,vector<int> va
         maxc = max(lu->maxcount, ld->maxcount);
         t->lu = lu;
         t->ld = ld;
+        delete(ru);
+        delete(rd);
     }
     else if(b1 == b2)
     {
@@ -359,6 +361,8 @@ void build2DTree(SegmentTree2DNode* t,int a1,int a2,int b1,int b2,vector<int> va
         maxc = max(ld->maxcount, rd->maxcount);
         t->ld = ld;
         t->rd = rd;
+        delete(ru);
+        delete(lu);
     }
     else
     {
@@ -589,7 +593,7 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
         for (vector<IntervalPair>::size_type w = 0; w != iptable2.size(); w++) {
             int queryResult = query2DTree(tree2, iptable2[w].ll, iptable2[w].lr, iptable2[w].rl, iptable2[w].rr);
             if (queryResult > ssh) {
-                cout << "[" << iptable[w1].ll << "," << iptable[w1].lr << "][" << iptable[w1].rl << "," << iptable[w1].rr << "] and";
+                cout << "[" << iptable[w1].ll << "," << iptable[w1].lr << "][" << iptable[w1].rl << "," << iptable[w1].rr << "] and ";
                 cout << "[" << iptable2[w].ll << "," << iptable2[w].lr << "][" << iptable2[w].rl << "," << iptable2[w].rr << "]->";
                 cout << queryResult << endl;
             }
@@ -650,7 +654,7 @@ int main()
         }
         else if (command == "test")
         {   //测试，比较document 1和2的相似度
-            calSimilarity(dataDocuments[0], dataDocuments[1], 20, 0.2);
+            calSimilarity(dataDocuments[0], dataDocuments[1], 100, 0.3);
 
         }
         else if (command == "tree")
