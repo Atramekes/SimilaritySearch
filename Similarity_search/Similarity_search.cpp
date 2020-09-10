@@ -220,7 +220,8 @@ public:
 
 int uni_hash(int val, int a, int b)
 {
-  return abs(a * val + b);
+  srand(a * val + b);
+  return abs(rand());
 }
 
 
@@ -331,7 +332,7 @@ void build2DTree(SegmentTree2DNode* t,int a1,int a2,int b1,int b2,vector<int> va
         t->b2 = b2;
         //t->inf = vals[a1][b1];
         t->maxcount = vals[a1][b1].size();
-        cout << t->maxcount << endl;
+        //cout << t->maxcount << endl;
         return;
     }
     int midA, midB;
@@ -449,17 +450,29 @@ int query2DTree(SegmentTree2DNode* root ,int a1, int a2, int b1, int b2) {
     
    
 }
-/*
-int RanHash(string text, int seed) {
-    //根据输入生成随机哈希值
-    std::hash<std::string> hash_fn;
-    int hash = hash_fn(text);
-    srand((seed+1)*hash);
-    return rand();
+
+void clean2DTree(SegmentTree2DNode* t) {
+    if (t->lu != NULL) {
+        clean2DTree(t->lu);
+    }
+    if (t->ld != NULL) {
+        clean2DTree(t->ld);
+    }
+    if (t->ru != NULL) {
+        clean2DTree(t->ru);
+    }
+    if (t->rd != NULL) {
+        clean2DTree(t->rd);
+    }
+    delete(t->lu);
+    delete(t->ld);
+    delete(t->ru);
+    delete(t->rd);
+    t->lu = NULL;
+    t->ld = NULL;
+    t->ru = NULL;
+    t->rd = NULL;
 }
-
-
-*/
 
 vector<int> ipmap[maxLen][maxLen];
 vector<int> ipmap2[maxLen][maxLen];
@@ -477,7 +490,7 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
             a = rand();
         int b = rand();
         int totalwords = dictionary.size();
-        for (auto& entry : wordcount)
+        for (auto& entry : wordcount)   
         {
             for (auto i = 0; i < entry.second; i++)
             {
@@ -486,8 +499,8 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
                 whv[entry.first].push_back(hv);
             }
         }
-        conquer(d1.doc, 0, d1.doc.size(), d1.doc.size() - 1, whv, k, cw1);
-        conquer(d2.doc, 0, d2.doc.size(), d2.doc.size() - 1, whv, k, cw2);
+        conquer(d1.doc, 0, d1.doc.size() - 1, d1.doc.size() - 1, whv, k, cw1);
+        conquer(d2.doc, 0, d2.doc.size() - 1, d2.doc.size() - 1, whv, k, cw2);
     }
     int ssh = (int)shuffleTimes * theta;
     int ipid = 0;
@@ -496,7 +509,7 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
     SegmentTree2DNode* tree = new SegmentTree2DNode();
     
     for (vector<CompactWindow>::size_type w = 0; w != cw1.size(); w++) {
-
+        //cout << "[" << cw1[w].left << "," << cw1[w].right << "] eos:" << cw1[w].eos << " hv:"<< cw1[w].hval << " p:" << cw1[w].p << endl;
         int p = cw1[w].p;
         int q = cw1[w].loc.size();
         int ll, lr, rl;
@@ -525,10 +538,11 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
     }
     build2DTree(tree, 0, d1.doc.size(), 0, d1.doc.size(), ipmap);
 
-    return;
-
+    
+    cout << "Start searching" << endl;
     for (vector<CompactWindow>::size_type w1 = 0; w1 != cw1.size(); w1++)
     {
+        //cout << w1 <<":" << endl;
         iptable2.clear();
         int ipid2 = 0;
         for (size_t i = 0; i < maxLen; i++)
@@ -538,6 +552,7 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
                 ipmap2[i][j].clear();
             }
         }
+
         for (vector<CompactWindow>::size_type w2 = 0; w2 != cw2.size(); w2++)
         {
             if (cw1[w1].hval == cw2[w2].hval && cw1[w1].hashid == cw2[w2].hashid) {
@@ -568,16 +583,18 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
                 }
             }
         }
+        
         SegmentTree2DNode* tree2 = new SegmentTree2DNode();
         build2DTree(tree2, 0, d2.doc.size(), 0, d2.doc.size(), ipmap2);
         for (vector<IntervalPair>::size_type w = 0; w != iptable2.size(); w++) {
             int queryResult = query2DTree(tree2, iptable2[w].ll, iptable2[w].lr, iptable2[w].rl, iptable2[w].rr);
-            if (queryResult >= ssh) {
-                cout << w << "[" << iptable2[w].ll << "," << iptable2[w].lr << "][" << iptable2[w].rl << "," << iptable2[w].rr << "]->";
+            if (queryResult > ssh) {
+                cout << "[" << iptable[w1].ll << "," << iptable[w1].lr << "][" << iptable[w1].rl << "," << iptable[w1].rr << "] and";
+                cout << "[" << iptable2[w].ll << "," << iptable2[w].lr << "][" << iptable2[w].rl << "," << iptable2[w].rr << "]->";
                 cout << queryResult << endl;
             }
         }
-    
+        clean2DTree(tree2);
     }
 
 }
@@ -633,7 +650,7 @@ int main()
         }
         else if (command == "test")
         {   //测试，比较document 1和2的相似度
-            calSimilarity(dataDocuments[0], dataDocuments[1], 20, 0.1);
+            calSimilarity(dataDocuments[0], dataDocuments[1], 20, 0.2);
 
         }
         else if (command == "tree")
@@ -668,8 +685,11 @@ int main()
             whv[5].push_back(71);
             whv[5].push_back(72);
             whv[5].push_back(73);
-            vector<CompactWindow> res;
-            conquer(vi, 0, 14, 14, whv, 1, res);
+            vector<CompactWindow> cw1;
+            conquer(vi, 0, 14, 14, whv, 1, cw1);
+            for (vector<CompactWindow>::size_type w = 0; w != cw1.size(); w++) {
+                cout << "[" << cw1[w].left << "," << cw1[w].right << "] eos:" << cw1[w].eos << " hv:" << cw1[w].hval << " p:" << cw1[w].p << endl;
+            }
         }
         else if (command == "rand")
         {

@@ -1,12 +1,12 @@
 ﻿  Similarity_search.cpp
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(261,26): warning C4018: “<=”: 有符号/无符号不匹配
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(471,26): warning C4018: “<”: 有符号/无符号不匹配
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(492,13): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(504,30): warning C4018: “<=”: 有符号/无符号不匹配
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(516,35): warning C4018: “<=”: 有符号/无符号不匹配
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(518,39): warning C4018: “<=”: 有符号/无符号不匹配
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(548,38): warning C4018: “<=”: 有符号/无符号不匹配
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(560,43): warning C4018: “<=”: 有符号/无符号不匹配
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(562,47): warning C4018: “<=”: 有符号/无符号不匹配
-D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(636,70): warning C4305: “参数”: 从“double”到“float”截断
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(262,26): warning C4018: “<=”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(484,26): warning C4018: “<”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(505,13): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(517,30): warning C4018: “<=”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(529,35): warning C4018: “<=”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(531,39): warning C4018: “<=”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(563,38): warning C4018: “<=”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(575,43): warning C4018: “<=”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(577,47): warning C4018: “<=”: 有符号/无符号不匹配
+D:\Summer\Similarity_search\Similarity_search\Similarity_search.cpp(653,70): warning C4305: “参数”: 从“double”到“float”截断
   Similarity_search.vcxproj -> D:\Summer\Similarity_search\Debug\Similarity_search.exe
