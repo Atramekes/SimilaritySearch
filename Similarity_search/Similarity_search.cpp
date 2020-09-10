@@ -132,9 +132,9 @@ public:
     int p;
     int hval;// hash value
     int id=0;
-    
-    CompactWindow(int indx1, int eos,int indx2, vector<int> loc, int p,int hv)
-        : left(indx1), eos(eos), right(indx2), loc(loc),p(p), hval(hv) { }
+    int hashid;
+    CompactWindow(int indx1, int eos,int indx2, vector<int> loc, int p,int hv, int hashid)
+        : left(indx1), eos(eos), right(indx2), loc(loc),p(p), hval(hv), hashid(hashid) { }
 };
 
 
@@ -224,7 +224,7 @@ int uni_hash(int val, int a, int b)
 }
 
 
-void conquer(vector<int> doc,int indx1, int eos, int indx2, unordered_map<int, vector<int>> whv, vector<CompactWindow>& results) {
+void conquer(vector<int> doc,int indx1, int eos, int indx2, unordered_map<int, vector<int>> whv,int hashid, vector<CompactWindow>& results) {
     unordered_map<int, int> freq;
     int minval = 0x7fffffff; 
     int p = -1; //第p个min word取min-hash，注意：访问这个元素应使用下标p-1
@@ -257,7 +257,7 @@ void conquer(vector<int> doc,int indx1, int eos, int indx2, unordered_map<int, v
     }
     int q = pos.size(); //注意：访问最后一个元素应使用下标q-1
     //cout << indx1 << " " << eos << " " << indx2 << " " << endl;
-    results.push_back(CompactWindow(indx1, eos, indx2, pos, p, minval));
+    results.push_back(CompactWindow(indx1, eos, indx2, pos, p, minval, hashid));
     for (size_t k = 0; k <= q - p; k++)
     {
         int left;
@@ -271,20 +271,20 @@ void conquer(vector<int> doc,int indx1, int eos, int indx2, unordered_map<int, v
         if (eos >= pos.at(k))
         {
             if (p==1) { //保证eos不大于indx2
-                conquer(doc, left, pos.at(k) - 1, pos.at(k + p - 1) - 1, whv, results);
+                conquer(doc, left, pos.at(k) - 1, pos.at(k + p - 1) - 1, whv, hashid, results);
             }
             else {
-                conquer(doc, left, pos.at(k), pos.at(k + p - 1) - 1, whv, results);
+                conquer(doc, left, pos.at(k), pos.at(k + p - 1) - 1, whv, hashid, results);
             }
             
         }
         else
         {
-            conquer(doc, left, eos, pos.at(k + p - 1) - 1, whv, results);
+            conquer(doc, left, eos, pos.at(k + p - 1) - 1, whv, hashid, results);
             return;    
         }
     }
-    conquer(doc, pos.at(q - p) + 1, eos, indx2, whv, results);
+    conquer(doc, pos.at(q - p) + 1, eos, indx2, whv,hashid, results);
 }
 
 
@@ -331,6 +331,7 @@ void build2DTree(SegmentTree2DNode* t,int a1,int a2,int b1,int b2,vector<int> va
         t->b2 = b2;
         //t->inf = vals[a1][b1];
         t->maxcount = vals[a1][b1].size();
+        cout << t->maxcount << endl;
         return;
     }
     int midA, midB;
@@ -485,12 +486,13 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
                 whv[entry.first].push_back(hv);
             }
         }
-        conquer(d1.doc, 0, d1.doc.size(), d1.doc.size() - 1, whv, cw1);
-        conquer(d2.doc, 0, d2.doc.size(), d2.doc.size() - 1, whv, cw2);
+        conquer(d1.doc, 0, d1.doc.size(), d1.doc.size() - 1, whv, k, cw1);
+        conquer(d2.doc, 0, d2.doc.size(), d2.doc.size() - 1, whv, k, cw2);
     }
     int ssh = (int)shuffleTimes * theta;
     int ipid = 0;
     vector<IntervalPair> iptable;
+    vector<IntervalPair> iptable2;
     SegmentTree2DNode* tree = new SegmentTree2DNode();
     
     for (vector<CompactWindow>::size_type w = 0; w != cw1.size(); w++) {
@@ -522,12 +524,13 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
         }
     }
     build2DTree(tree, 0, d1.doc.size(), 0, d1.doc.size(), ipmap);
+
+    return;
+
     for (vector<CompactWindow>::size_type w1 = 0; w1 != cw1.size(); w1++)
     {
+        iptable2.clear();
         int ipid2 = 0;
-        vector<IntervalPair> iptable2;
-        SegmentTree2DNode* tree2 = new SegmentTree2DNode();
-        
         for (size_t i = 0; i < maxLen; i++)
         {
             for (size_t j = 0; j < maxLen; j++)
@@ -537,7 +540,7 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
         }
         for (vector<CompactWindow>::size_type w2 = 0; w2 != cw2.size(); w2++)
         {
-            if (cw1[w1].hval == cw2[w2].hval) {
+            if (cw1[w1].hval == cw2[w2].hval && cw1[w1].hashid == cw2[w2].hashid) {
                 int p = cw2[w2].p;
                 int q = cw2[w2].loc.size();
                 int ll, lr, rl;
@@ -552,7 +555,7 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
                     }
                     lr = cw2[w2].loc[i];
                     rl = cw2[w2].loc[i + p - 1];
-                    IntervalPair* ip = new IntervalPair(ll, lr, rl, rr, ipid, cw2[w2].hval);
+                    IntervalPair* ip = new IntervalPair(ll, lr, rl, rr, ipid2, cw2[w2].hval);
                     iptable2.push_back(*ip);
                     for (size_t m = ll; m <= lr; m++)
                     {
@@ -561,17 +564,22 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
                             ipmap2[m][n].push_back(ipid2);
                         }
                     }
-                    ipid = ipid + 1;
-                } 
+                    ipid2 = ipid2 + 1;
+                }
             }
         }
+        SegmentTree2DNode* tree2 = new SegmentTree2DNode();
         build2DTree(tree2, 0, d2.doc.size(), 0, d2.doc.size(), ipmap2);
         for (vector<IntervalPair>::size_type w = 0; w != iptable2.size(); w++) {
-            cout << w << "[" << iptable2[w].ll << "," << iptable2[w].lr << "][" << iptable2[w].rl << "," << iptable2[w].rr << "]->";
-            cout << query2DTree(tree2, iptable2[w].ll, iptable2[w].lr, iptable2[w].rl, iptable2[w].rr) << endl;
+            int queryResult = query2DTree(tree2, iptable2[w].ll, iptable2[w].lr, iptable2[w].rl, iptable2[w].rr);
+            if (queryResult >= ssh) {
+                cout << w << "[" << iptable2[w].ll << "," << iptable2[w].lr << "][" << iptable2[w].rl << "," << iptable2[w].rr << "]->";
+                cout << queryResult << endl;
+            }
         }
-        
+    
     }
+
 }
 
 
@@ -625,7 +633,7 @@ int main()
         }
         else if (command == "test")
         {   //测试，比较document 1和2的相似度
-            calSimilarity(dataDocuments[0], dataDocuments[1], 20, 0);
+            calSimilarity(dataDocuments[0], dataDocuments[1], 20, 0.1);
 
         }
         else if (command == "tree")
@@ -661,7 +669,7 @@ int main()
             whv[5].push_back(72);
             whv[5].push_back(73);
             vector<CompactWindow> res;
-            conquer(vi, 0, 14, 14, whv, res);
+            conquer(vi, 0, 14, 14, whv, 1, res);
         }
         else if (command == "rand")
         {
