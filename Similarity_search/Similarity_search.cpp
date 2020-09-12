@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <windows.h>
+#include <algorithm>
 #define maxLen 500
 
 using namespace std;
@@ -220,8 +221,13 @@ public:
 
 int uni_hash(int val, int a, int b)
 {
-  srand(a * val + b);
-  return abs(rand());
+    srand(a * b);
+    int ans;
+    for (size_t i = 0; i < abs(val); i++)
+    {
+        rand();
+    }
+    return abs(rand());
 }
 
 
@@ -257,7 +263,7 @@ void conquer(vector<int> doc,int indx1, int eos, int indx2, unordered_map<int, v
         }
     }
     int q = pos.size(); //注意：访问最后一个元素应使用下标q-1
-    //cout << indx1 << " " << eos << " " << indx2 << " " << endl;
+    //cout << indx1 << " " << eos << " " << indx2 << " id:" << hashid << " hv:" << minval << endl;
     results.push_back(CompactWindow(indx1, eos, indx2, pos, p, minval, hashid));
     for (size_t k = 0; k <= q - p; k++)
     {
@@ -298,9 +304,10 @@ public:
     int rr;
     int id;
     int hval;
+    int hashid;
 
-    IntervalPair(int ll, int lr, int rl, int rr, int id, int hv)
-        : ll(ll), lr(lr), rl(rl), rr(rr),id(id), hval(hv) { }
+    IntervalPair(int ll, int lr, int rl, int rr, int id, int hv, int hashid)
+        : ll(ll), lr(lr), rl(rl), rr(rr),id(id), hval(hv),hashid(hashid) { }
 };
 
 
@@ -312,6 +319,7 @@ struct SegmentTree2DNode {
     int a2;
     int b1;
     int b2;     
+    set<int> inf;
     //vector<int> inf;
     int maxcount;
     SegmentTree2DNode* lu;
@@ -330,7 +338,12 @@ void build2DTree(SegmentTree2DNode* t,int a1,int a2,int b1,int b2,vector<int> va
         t->a2 = a2;
         t->b1 = b1;
         t->b2 = b2;
-        //t->inf = vals[a1][b1];
+        set<int> s;
+        for (size_t i = 0; i < vals[a1][b1].size(); i++)
+        {
+            s.insert(vals[a1][b1][i]);
+        }
+        t->inf = s;
         t->maxcount = vals[a1][b1].size();
         //cout << t->maxcount << endl;
         return;
@@ -348,9 +361,14 @@ void build2DTree(SegmentTree2DNode* t,int a1,int a2,int b1,int b2,vector<int> va
     if (a1 == a2) {
         build2DTree(lu, a1, a2, midB + 1, b2, vals);
         build2DTree(ld, a1, a2, b1, midB, vals);
-        maxc = max(lu->maxcount, ld->maxcount);
+        maxc = min(lu->maxcount, ld->maxcount);
         t->lu = lu;
         t->ld = ld;
+        set<int> s;
+        set_intersection(lu->inf.begin(), lu->inf.end(), ld->inf.begin(), ld->inf.end(), insert_iterator<set<int>>(s, s.begin()));
+        //s.insert(lu->inf.begin(), lu->inf.end());
+        //s.insert(ld->inf.begin(), ld->inf.end());
+        t->inf = s;
         delete(ru);
         delete(rd);
     }
@@ -358,7 +376,12 @@ void build2DTree(SegmentTree2DNode* t,int a1,int a2,int b1,int b2,vector<int> va
     {
         build2DTree(ld, a1, midA, b1, b2, vals);
         build2DTree(rd, midA + 1, a2, b1, b2, vals);
-        maxc = max(ld->maxcount, rd->maxcount);
+        maxc = min(ld->maxcount, rd->maxcount);
+        set<int> s;
+        set_intersection(rd->inf.begin(), rd->inf.end(), ld->inf.begin(), ld->inf.end(), insert_iterator<set<int>>(s, s.begin()));
+        //s.insert(rd->inf.begin(), rd->inf.end());
+        //s.insert(ld->inf.begin(), ld->inf.end());
+        t->inf = s;
         t->ld = ld;
         t->rd = rd;
         delete(ru);
@@ -370,7 +393,16 @@ void build2DTree(SegmentTree2DNode* t,int a1,int a2,int b1,int b2,vector<int> va
         build2DTree(ld, a1, midA, b1, midB, vals);
         build2DTree(ru, midA + 1, a2, midB + 1, b2, vals);
         build2DTree(rd, midA + 1, a2, b1, midB, vals);
-        maxc = max(max(lu->maxcount, ld->maxcount), max(ru->maxcount, rd->maxcount));
+        maxc = min(min(lu->maxcount, ld->maxcount), min(ru->maxcount, rd->maxcount));
+        set<int> s1,s2,s;
+        set_intersection(lu->inf.begin(), lu->inf.end(), ld->inf.begin(), ld->inf.end(), insert_iterator<set<int>>(s1, s1.begin()));
+        set_intersection(rd->inf.begin(), rd->inf.end(), ru->inf.begin(), ru->inf.end(), insert_iterator<set<int>>(s2, s2.begin()));
+        set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), insert_iterator<set<int>>(s, s.begin()));
+        //s.insert(lu->inf.begin(), lu->inf.end());
+        //s.insert(ld->inf.begin(), ld->inf.end());
+        //s.insert(ru->inf.begin(), ru->inf.end());
+        //s.insert(rd->inf.begin(), rd->inf.end());
+        t->inf = s;
         t->lu = lu;
         t->ld = ld;
         t->ru = ru;
@@ -399,20 +431,20 @@ int query2DTree(SegmentTree2DNode* root ,int a1, int a2, int b1, int b2) {
             ld = query2DTree(root->ld, a1, midA, b1, midB);
             ru = query2DTree(root->ru, midA+1, a2, midB+1, b2);
             rd = query2DTree(root->rd, midA+1, a2, b1, midB);
-            int maxc = max(max(lu, ld), max(ru, rd));
+            int maxc = min(min(lu, ld), min(ru, rd));
             return maxc;
         }
         else {
             if (midB < b1) {
                 lu = query2DTree(root->lu, a1, midA, b1, b2);
                 ru = query2DTree(root->ru, midA+1, a2, b1, b2);
-                int maxc = max(ru, lu);
+                int maxc = min(ru, lu);
                 return maxc;
             }
             else {
                 ld = query2DTree(root->ld, a1, midA, b1, b2);
                 rd = query2DTree(root->rd, midA+1, a2, b1, b2);
-                int maxc = max(rd, ld);
+                int maxc = min(rd, ld);
                 return maxc;
             }
         }
@@ -422,7 +454,7 @@ int query2DTree(SegmentTree2DNode* root ,int a1, int a2, int b1, int b2) {
             if (b1 <= midB && midB < b2) {
                 ru = query2DTree(root->ru, a1, a2, midB+1, b2);
                 rd = query2DTree(root->rd, a1, a2, b1, midB);
-                int maxc = max(ru, rd);
+                int maxc = min(ru, rd);
                 return maxc;
             }
             else {
@@ -438,7 +470,7 @@ int query2DTree(SegmentTree2DNode* root ,int a1, int a2, int b1, int b2) {
             if (b1 <= midB && midB < b2) {
                 lu = query2DTree(root->lu, a1, a2, midB+1, b2);
                 ld = query2DTree(root->ld, a1, a2, b1, midB);
-                int maxc = max(ld, lu);
+                int maxc = min(ld, lu);
                 return maxc;
             }
             else {
@@ -453,6 +485,98 @@ int query2DTree(SegmentTree2DNode* root ,int a1, int a2, int b1, int b2) {
     }
     
    
+}
+
+
+
+
+set<int> visit2DTree(SegmentTree2DNode* root, int a1, int a2, int b1, int b2) {
+    //新的查询2D片段树的方法
+    if (root->a1 == a1 && root->a2 == a2 && root->b1 == b1 && root->b2 == b2) {
+        return root->inf;
+    }
+    int midA, midB;
+    midA = (root->a1 + root->a2) / 2;
+    midB = (root->b1 + root->b2) / 2;
+    set<int> lu, ld, ru, rd;
+    if (a1 <= midA && midA < a2) {
+        if (b1 <= midB && midB < b2) {
+            lu = visit2DTree(root->lu, a1, midA, midB + 1, b2);
+            ld = visit2DTree(root->ld, a1, midA, b1, midB);
+            ru = visit2DTree(root->ru, midA + 1, a2, midB + 1, b2);
+            rd = visit2DTree(root->rd, midA + 1, a2, b1, midB);
+            set<int> s1, s2, s;
+            set_intersection(lu.begin(), lu.end(), ld.begin(), ld.end(), insert_iterator<set<int>>(s1, s1.begin()));
+            set_intersection(rd.begin(), rd.end(), ru.begin(), ru.end(), insert_iterator<set<int>>(s2, s2.begin()));
+            set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), insert_iterator<set<int>>(s, s.begin()));
+            //s.insert(lu.begin(), lu.end());
+            //s.insert(ld.begin(), ld.end());
+            //s.insert(ru.begin(), ru.end());
+            //s.insert(rd.begin(), rd.end());
+            
+            return s;
+        }
+        else {
+            if (midB < b1) {
+                lu = visit2DTree(root->lu, a1, midA, b1, b2);
+                ru = visit2DTree(root->ru, midA + 1, a2, b1, b2);
+                set<int> s;
+                set_intersection(lu.begin(), lu.end(), ru.begin(), ru.end(), insert_iterator<set<int>>(s, s.begin()));
+                //s.insert(lu.begin(), lu.end());
+                //s.insert(ru.begin(), ru.end());
+                return s;
+            }
+            else {
+                ld = visit2DTree(root->ld, a1, midA, b1, b2);
+                rd = visit2DTree(root->rd, midA + 1, a2, b1, b2);
+                set<int> s;
+                set_intersection(ld.begin(), ld.end(), rd.begin(), rd.end(), insert_iterator<set<int>>(s, s.begin()));
+                //s.insert(ld.begin(), ld.end());
+                //s.insert(rd.begin(), rd.end());
+                return s;
+            }
+        }
+    }
+    else {
+        if (midA < a1) {
+            if (b1 <= midB && midB < b2) {
+                ru = visit2DTree(root->ru, a1, a2, midB + 1, b2);
+                rd = visit2DTree(root->rd, a1, a2, b1, midB);
+                set<int> s;
+                set_intersection(ru.begin(), ru.end(), rd.begin(), rd.end(), insert_iterator<set<int>>(s, s.begin()));
+                //s.insert(ru.begin(), ru.end());
+                //s.insert(rd.begin(), rd.end());
+                return s;
+            }
+            else {
+                if (midB < b1) {
+                    return visit2DTree(root->ru, a1, a2, b1, b2);
+                }
+                else {
+                    return visit2DTree(root->rd, a1, a2, b1, b2);
+                }
+            }
+        }
+        else {
+            if (b1 <= midB && midB < b2) {
+                lu = visit2DTree(root->lu, a1, a2, midB + 1, b2);
+                ld = visit2DTree(root->ld, a1, a2, b1, midB);
+                set<int> s;
+                set_intersection(lu.begin(), lu.end(), ld.begin(), ld.end(), insert_iterator<set<int>>(s, s.begin()));
+                //s.insert(lu.begin(), lu.end());
+                //s.insert(ld.begin(), ld.end());
+                return s;
+            }
+            else {
+                if (midB < b1) {
+                    return visit2DTree(root->lu, a1, a2, b1, b2);
+                }
+                else {
+                    return visit2DTree(root->ld, a1, a2, b1, b2);
+                }
+            }
+        }
+    }
 }
 
 void clean2DTree(SegmentTree2DNode* t) {
@@ -485,6 +609,10 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
     //新方法比较相似度
     vector<CompactWindow> cw1;
     vector<CompactWindow> cw2;
+    for (auto& entry : dictionary)
+    { 
+       cout << entry.first << " : " << entry.second<<endl;
+    }
     for (size_t k = 0; k < shuffleTimes; k++)
     {
         srand(k);
@@ -497,13 +625,16 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
         for (auto& entry : wordcount)   
         {
             for (auto i = 0; i < entry.second; i++)
-            {
+            {   
                 int wid = i * totalwords + entry.first;
                 int hv = uni_hash(wid, a, b);
                 whv[entry.first].push_back(hv);
+                cout << entry.first << " hash " << hv << endl;
             }
         }
+        //cout << "win1" << endl;
         conquer(d1.doc, 0, d1.doc.size() - 1, d1.doc.size() - 1, whv, k, cw1);
+        //cout << "win2" << endl;
         conquer(d2.doc, 0, d2.doc.size() - 1, d2.doc.size() - 1, whv, k, cw2);
     }
     int ssh = (int)shuffleTimes * theta;
@@ -518,7 +649,7 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
         int q = cw1[w].loc.size();
         int ll, lr, rl;
         int rr = cw1[w].right;
-        for (size_t i = 0; i <= q - p; i++)
+        for (size_t i = 0; i <= q - p; i++)   
         {
             if (i == 0) {
                 ll = cw1[w].left;
@@ -528,7 +659,7 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
             }
             lr = cw1[w].loc[i];
             rl = cw1[w].loc[i + p - 1];
-            IntervalPair* ip = new IntervalPair(ll, lr, rl, rr, ipid, cw1[w].hval);
+            IntervalPair* ip = new IntervalPair(ll, lr, rl, rr, ipid, cw1[w].hval, cw1[w].hashid);
             iptable.push_back(*ip);
             for (size_t m = ll; m <= lr; m++)
             {
@@ -544,9 +675,86 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
 
     
     cout << "Start searching" << endl;
+
+    for (vector<IntervalPair>::size_type p = 0; p != iptable.size(); p++) {
+        int q1result = query2DTree(tree, iptable[p].ll, iptable[p].lr, iptable[p].rl, iptable[p].rr);
+        //cout << q1result << endl;
+        if (q1result >= ssh) {
+            iptable2.clear();
+            int ipid2 = 0;
+            for (size_t i = 0; i < maxLen; i++)
+            {
+                for (size_t j = 0; j < maxLen; j++)
+                {
+                    ipmap2[i][j].clear();
+                }
+            }
+            set<int> s = visit2DTree(tree, iptable[p].ll, iptable[p].lr, iptable[p].rl, iptable[p].rr);
+            for (set<int>::iterator it=s.begin(); it!=s.end(); it++)
+            {
+                for (vector<CompactWindow>::size_type w2 = 0; w2 != cw2.size(); w2++)
+                {
+                    if (iptable[*it].hval == cw2[w2].hval && iptable[*it].hashid == cw2[w2].hashid) {
+                        int p = cw2[w2].p;
+                        int q = cw2[w2].loc.size();
+                        int ll, lr, rl;
+                        int rr = cw2[w2].right;
+                        for (size_t i = 0; i <= q - p; i++)
+                        {
+                            if (i == 0) {
+                                ll = cw2[w2].left;
+                            }
+                            else {
+                                ll = cw2[w2].loc[i - 1] + 1;
+                            }
+                            lr = cw2[w2].loc[i];
+                            rl = cw2[w2].loc[i + p - 1];
+                            IntervalPair* ip = new IntervalPair(ll, lr, rl, rr, ipid2, cw2[w2].hval, cw2[w2].hashid);
+                            iptable2.push_back(*ip);
+                            for (size_t m = ll; m <= lr; m++)
+                            {
+                                for (size_t n = rl; n <= rr; n++)
+                                {
+                                    ipmap2[m][n].push_back(ipid2);
+                                }
+                            }
+                            ipid2 = ipid2 + 1;
+                        }
+                    }
+                }
+            }
+       
+            SegmentTree2DNode* tree2 = new SegmentTree2DNode();
+            build2DTree(tree2, 0, d2.doc.size(), 0, d2.doc.size(), ipmap2);
+            for (vector<IntervalPair>::size_type w = 0; w != iptable2.size(); w++) {
+                int queryResult = query2DTree(tree2, iptable2[w].ll, iptable2[w].lr, iptable2[w].rl, iptable2[w].rr);
+                if (queryResult > ssh) {
+                    cout << "[" << iptable[p].ll << "," << iptable[p].lr << "][" << iptable[p].rl << "," << iptable[p].rr << "] and ";
+                    cout << "[" << iptable2[w].ll << "," << iptable2[w].lr << "][" << iptable2[w].rl << "," << iptable2[w].rr << "]->";
+                    cout << queryResult << endl;
+                    /*for (size_t i = iptable[w1].ll; i <= iptable[w1].rr; i++)
+                    {
+                        cout << d1.tokens[i].content << " ";
+                    }
+                    cout << endl;
+                    for (size_t i = iptable2[w].ll; i <= iptable2[w].rr; i++)
+                    {
+                        cout << d2.tokens[i].content << " ";
+                    }
+                    cout << endl;*/
+
+                }
+            }
+            clean2DTree(tree2);
+        }
+    }
+
+    return;
+
     for (vector<CompactWindow>::size_type w1 = 0; w1 != cw1.size(); w1++)
     {
-        //cout << w1 <<":" << endl;
+        cout <<"searching "<< w1 <<":" << endl;
+        cout << cw1[w1].left << " " << cw1[w1].eos << " " << cw1[w1].right << " id:" << cw1[w1].hashid << " hv:" << cw1[w1].hval << endl;
         iptable2.clear();
         int ipid2 = 0;
         for (size_t i = 0; i < maxLen; i++)
@@ -560,6 +768,8 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
         for (vector<CompactWindow>::size_type w2 = 0; w2 != cw2.size(); w2++)
         {
             if (cw1[w1].hval == cw2[w2].hval && cw1[w1].hashid == cw2[w2].hashid) {
+                cout << "window hits" << endl;
+                cout << cw2[w2].left << " " << cw2[w2].eos << " " << cw2[w2].right << endl;
                 int p = cw2[w2].p;
                 int q = cw2[w2].loc.size();
                 int ll, lr, rl;
@@ -574,7 +784,7 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
                     }
                     lr = cw2[w2].loc[i];
                     rl = cw2[w2].loc[i + p - 1];
-                    IntervalPair* ip = new IntervalPair(ll, lr, rl, rr, ipid2, cw2[w2].hval);
+                    IntervalPair* ip = new IntervalPair(ll, lr, rl, rr, ipid2, cw2[w2].hval, cw2[w2].hashid);
                     iptable2.push_back(*ip);
                     for (size_t m = ll; m <= lr; m++)
                     {
@@ -596,11 +806,46 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
                 cout << "[" << iptable[w1].ll << "," << iptable[w1].lr << "][" << iptable[w1].rl << "," << iptable[w1].rr << "] and ";
                 cout << "[" << iptable2[w].ll << "," << iptable2[w].lr << "][" << iptable2[w].rl << "," << iptable2[w].rr << "]->";
                 cout << queryResult << endl;
+                /*for (size_t i = iptable[w1].ll; i <= iptable[w1].rr; i++)
+                {
+                    cout << d1.tokens[i].content << " ";
+                }
+                cout << endl;
+                for (size_t i = iptable2[w].ll; i <= iptable2[w].rr; i++)
+                {
+                    cout << d2.tokens[i].content << " ";
+                }
+                cout << endl;*/
+               
             }
         }
         clean2DTree(tree2);
     }
 
+}
+
+void runtest(Document d1, int shuffleTimes, float theta) {
+    vector<CompactWindow> cw1;
+    for (size_t k = 0; k < shuffleTimes; k++)
+    {
+        srand(k);
+        whv.clear();
+        int a = 0;
+        while (a == 0)
+            a = rand();
+        int b = rand();
+        int totalwords = dictionary.size();
+        for (auto& entry : wordcount)
+        {
+            for (auto i = 0; i < entry.second; i++)
+            {
+                int wid = i * totalwords + entry.first;
+                int hv = uni_hash(wid, a, b);
+                whv[entry.first].push_back(hv);
+            }
+        }
+        conquer(d1.doc, 0, d1.doc.size() - 1, d1.doc.size() - 1, whv, k, cw1);
+    }
 }
 
 
@@ -619,7 +864,7 @@ int main()
         {   //从数据集读入documents
             ifstream ifs;
             
-            ifs.open("test.txt", ios::in);//reut2-000.sgm //test是两篇文章；reut2-000.sgm是下载的数据集
+            ifs.open("test2.txt", ios::in);//reut2-000.sgm //test是两篇文章；reut2-000.sgm是下载的数据集
             if (!ifs.is_open()) {
                 cout << "file open error" << endl;
             }
@@ -654,8 +899,27 @@ int main()
         }
         else if (command == "test")
         {   //测试，比较document 1和2的相似度
-            calSimilarity(dataDocuments[0], dataDocuments[1], 100, 0.3);
+            /*
+            for (size_t i = 38; i <= 43; i++)
+                {
+                    cout << dataDocuments[0].tokens[i].content << " ";
+                }
+                cout << endl;
+                for (size_t i = 56; i <= 61; i++)
+                {
+                    cout << dataDocuments[1].tokens[i].content << " ";
+                }
+                cout << endl;*/
+            calSimilarity(dataDocuments[0], dataDocuments[1], 50, 0.6);
 
+        }
+        else if (command == "tt")
+        {
+
+            for (size_t i = 0; i < dataDocuments.size(); i++)
+            {
+                runtest(dataDocuments[i], 40, 0);
+            }
         }
         else if (command == "tree")
         {
@@ -693,6 +957,8 @@ int main()
             conquer(vi, 0, 14, 14, whv, 1, cw1);
             for (vector<CompactWindow>::size_type w = 0; w != cw1.size(); w++) {
                 cout << "[" << cw1[w].left << "," << cw1[w].right << "] eos:" << cw1[w].eos << " hv:" << cw1[w].hval << " p:" << cw1[w].p << endl;
+            
+            
             }
         }
         else if (command == "rand")
