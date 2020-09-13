@@ -16,6 +16,7 @@ unordered_map<string, int> dictionary; //将token映射为token id
 unordered_map<int, int> wordcount;
 
 
+
 void SplitString(const string& s, vector<string>& v, const string& delim) {
     //将字符串s以字符c为分割符切割，结果保存于向量v
     string::size_type head, tail;
@@ -99,7 +100,7 @@ public:
         for (size_t i = 0; i < cl.length(); i++)
         {
             cl[i] = tolower(cl[i]);
-            if (!isalnum(cl[i])) {
+            if (!isalnum((unsigned char)cl[i])) {
                 cl[i] = ' ';
             }
         }
@@ -222,7 +223,6 @@ public:
 int uni_hash(int val, int a, int b)
 {
     srand(a * b);
-    int ans;
     for (size_t i = 0; i < abs(val); i++)
     {
         rand();
@@ -237,7 +237,7 @@ void conquer(vector<int> doc,int indx1, int eos, int indx2, unordered_map<int, v
     int p = -1; //第p个min word取min-hash，注意：访问这个元素应使用下标p-1
     int minword = -1; 
 
-    if (indx1 > eos || indx2 - indx1 <= 0) {
+    if (indx1 > eos || indx2 - indx1 <= 2) {
         return;
     }
     for (int i = indx1; i <= indx2; i++)
@@ -364,11 +364,9 @@ void build2DTree(SegmentTree2DNode* t,int a1,int a2,int b1,int b2,vector<int> va
         maxc = min(lu->maxcount, ld->maxcount);
         t->lu = lu;
         t->ld = ld;
-        set<int> s;
-        set_intersection(lu->inf.begin(), lu->inf.end(), ld->inf.begin(), ld->inf.end(), insert_iterator<set<int>>(s, s.begin()));
-        //s.insert(lu->inf.begin(), lu->inf.end());
-        //s.insert(ld->inf.begin(), ld->inf.end());
-        t->inf = s;
+        //set<int> s;
+        //set_intersection(lu->inf.begin(), lu->inf.end(), ld->inf.begin(), ld->inf.end(), insert_iterator<set<int>>(s, s.begin()));
+        //t->inf = s;
         delete(ru);
         delete(rd);
     }
@@ -377,11 +375,9 @@ void build2DTree(SegmentTree2DNode* t,int a1,int a2,int b1,int b2,vector<int> va
         build2DTree(ld, a1, midA, b1, b2, vals);
         build2DTree(rd, midA + 1, a2, b1, b2, vals);
         maxc = min(ld->maxcount, rd->maxcount);
-        set<int> s;
-        set_intersection(rd->inf.begin(), rd->inf.end(), ld->inf.begin(), ld->inf.end(), insert_iterator<set<int>>(s, s.begin()));
-        //s.insert(rd->inf.begin(), rd->inf.end());
-        //s.insert(ld->inf.begin(), ld->inf.end());
-        t->inf = s;
+        //set<int> s;
+        //set_intersection(rd->inf.begin(), rd->inf.end(), ld->inf.begin(), ld->inf.end(), insert_iterator<set<int>>(s, s.begin()));
+        //t->inf = s;
         t->ld = ld;
         t->rd = rd;
         delete(ru);
@@ -394,15 +390,11 @@ void build2DTree(SegmentTree2DNode* t,int a1,int a2,int b1,int b2,vector<int> va
         build2DTree(ru, midA + 1, a2, midB + 1, b2, vals);
         build2DTree(rd, midA + 1, a2, b1, midB, vals);
         maxc = min(min(lu->maxcount, ld->maxcount), min(ru->maxcount, rd->maxcount));
-        set<int> s1,s2,s;
-        set_intersection(lu->inf.begin(), lu->inf.end(), ld->inf.begin(), ld->inf.end(), insert_iterator<set<int>>(s1, s1.begin()));
-        set_intersection(rd->inf.begin(), rd->inf.end(), ru->inf.begin(), ru->inf.end(), insert_iterator<set<int>>(s2, s2.begin()));
-        set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), insert_iterator<set<int>>(s, s.begin()));
-        //s.insert(lu->inf.begin(), lu->inf.end());
-        //s.insert(ld->inf.begin(), ld->inf.end());
-        //s.insert(ru->inf.begin(), ru->inf.end());
-        //s.insert(rd->inf.begin(), rd->inf.end());
-        t->inf = s;
+        //set<int> s1,s2,s;
+        //set_intersection(lu->inf.begin(), lu->inf.end(), ld->inf.begin(), ld->inf.end(), insert_iterator<set<int>>(s1, s1.begin()));
+        //set_intersection(rd->inf.begin(), rd->inf.end(), ru->inf.begin(), ru->inf.end(), insert_iterator<set<int>>(s2, s2.begin()));
+        //set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), insert_iterator<set<int>>(s, s.begin()));
+        //t->inf = s;
         t->lu = lu;
         t->ld = ld;
         t->ru = ru;
@@ -605,14 +597,19 @@ void clean2DTree(SegmentTree2DNode* t) {
 vector<int> ipmap[maxLen][maxLen];
 vector<int> ipmap2[maxLen][maxLen];
 
-void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
+void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta, string outfile) {
     //新方法比较相似度
     vector<CompactWindow> cw1;
     vector<CompactWindow> cw2;
-    for (auto& entry : dictionary)
+
+    ofstream fout;
+    fout.open(outfile, ios::out);
+    fout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
+    fout << "<document reference=\"" << outfile.substr(0, outfile.length()-4) << ".txt" <<"\">" <<endl;
+    /*for (auto& entry : dictionary)
     { 
        cout << entry.first << " : " << entry.second<<endl;
-    }
+    }*/
     for (size_t k = 0; k < shuffleTimes; k++)
     {
         srand(k);
@@ -629,7 +626,7 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
                 int wid = i * totalwords + entry.first;
                 int hv = uni_hash(wid, a, b);
                 whv[entry.first].push_back(hv);
-                cout << entry.first << " hash " << hv << endl;
+                //cout << entry.first << " hash " << hv << endl;
             }
         }
         //cout << "win1" << endl;
@@ -748,80 +745,9 @@ void calSimilarity(Document d1, Document d2, int shuffleTimes, float theta) {
             clean2DTree(tree2);
         }
     }
+    fout << "</document>" << endl;
 
-    return;
-
-    for (vector<CompactWindow>::size_type w1 = 0; w1 != cw1.size(); w1++)
-    {
-        cout <<"searching "<< w1 <<":" << endl;
-        cout << cw1[w1].left << " " << cw1[w1].eos << " " << cw1[w1].right << " id:" << cw1[w1].hashid << " hv:" << cw1[w1].hval << endl;
-        iptable2.clear();
-        int ipid2 = 0;
-        for (size_t i = 0; i < maxLen; i++)
-        {
-            for (size_t j = 0; j < maxLen; j++)
-            {
-                ipmap2[i][j].clear();
-            }
-        }
-
-        for (vector<CompactWindow>::size_type w2 = 0; w2 != cw2.size(); w2++)
-        {
-            if (cw1[w1].hval == cw2[w2].hval && cw1[w1].hashid == cw2[w2].hashid) {
-                cout << "window hits" << endl;
-                cout << cw2[w2].left << " " << cw2[w2].eos << " " << cw2[w2].right << endl;
-                int p = cw2[w2].p;
-                int q = cw2[w2].loc.size();
-                int ll, lr, rl;
-                int rr = cw2[w2].right;
-                for (size_t i = 0; i <= q - p; i++)
-                {
-                    if (i == 0) {
-                        ll = cw2[w2].left;
-                    }
-                    else {
-                        ll = cw2[w2].loc[i - 1] + 1;
-                    }
-                    lr = cw2[w2].loc[i];
-                    rl = cw2[w2].loc[i + p - 1];
-                    IntervalPair* ip = new IntervalPair(ll, lr, rl, rr, ipid2, cw2[w2].hval, cw2[w2].hashid);
-                    iptable2.push_back(*ip);
-                    for (size_t m = ll; m <= lr; m++)
-                    {
-                        for (size_t n = rl; n <= rr; n++)
-                        {
-                            ipmap2[m][n].push_back(ipid2);
-                        }
-                    }
-                    ipid2 = ipid2 + 1;
-                }
-            }
-        }
-        
-        SegmentTree2DNode* tree2 = new SegmentTree2DNode();
-        build2DTree(tree2, 0, d2.doc.size(), 0, d2.doc.size(), ipmap2);
-        for (vector<IntervalPair>::size_type w = 0; w != iptable2.size(); w++) {
-            int queryResult = query2DTree(tree2, iptable2[w].ll, iptable2[w].lr, iptable2[w].rl, iptable2[w].rr);
-            if (queryResult > ssh) {
-                cout << "[" << iptable[w1].ll << "," << iptable[w1].lr << "][" << iptable[w1].rl << "," << iptable[w1].rr << "] and ";
-                cout << "[" << iptable2[w].ll << "," << iptable2[w].lr << "][" << iptable2[w].rl << "," << iptable2[w].rr << "]->";
-                cout << queryResult << endl;
-                /*for (size_t i = iptable[w1].ll; i <= iptable[w1].rr; i++)
-                {
-                    cout << d1.tokens[i].content << " ";
-                }
-                cout << endl;
-                for (size_t i = iptable2[w].ll; i <= iptable2[w].rr; i++)
-                {
-                    cout << d2.tokens[i].content << " ";
-                }
-                cout << endl;*/
-               
-            }
-        }
-        clean2DTree(tree2);
-    }
-
+    fout.close();
 }
 
 void runtest(Document d1, int shuffleTimes, float theta) {
@@ -854,6 +780,7 @@ int main()
     //主程序，命令式交互
     string command;
     vector<Document> dataDocuments;
+    vector<Document> suspiciousDocuments;
     ofstream logifs;
     logifs.open("log.txt", ios::out);
     cout << "Welcome\n";
@@ -894,32 +821,117 @@ int main()
                     }
                 }
                 ifs.close();
-                logifs << "※Reading file complete." << endl;
+            }
+        } else if (command == "loadpan")
+        {   //读入pan数据库
+            ifstream ifs;
+            string profix, filename;
+            profix = "D:\\Summer\\Benchmark\\pan11\\test-corpus\\source-documents\\source-document";
+            for (int filenum = 1; filenum <= 11; filenum++) //093
+            {
+                filename = profix;
+                string tail = to_string(filenum);
+                for (size_t i = 0; i < 5 - tail.length(); i++)
+                {
+                    filename = filename + "0";
+                }
+                
+                filename = filename + tail + ".txt";
+                ifs.open(filename, ios::in);
+                if (!ifs.is_open()) {
+                    cout << "file \"" << filename << "\" open error" << endl;
+                }
+                else {
+                    string buf, text = "";
+                    while (getline(ifs, buf))
+                    {
+                        text.append(buf);
+                        text.append(" ");
+                    }
+                    Document* dd = new Document(text);
+                    dataDocuments.push_back(*dd);
+
+                }
+
+                ifs.close();
+            }
+        }
+        else if (command == "loadsus")
+        {   //读入sus数据库
+            ifstream ifs;
+            string profix, filename;
+            profix = "D:\\Summer\\Benchmark\\pan11\\test-corpus\\suspicious-documents\\suspicious-document";
+            for (int filenum = 1; filenum <= 11; filenum++) //093
+            {
+                filename = profix;
+                string tail = to_string(filenum);
+                for (size_t i = 0; i < 5 - tail.length(); i++)
+                {
+                    filename = filename + "0";
+                }
+
+                filename = filename + tail + ".txt";
+                ifs.open(filename, ios::in);
+                if (!ifs.is_open()) {
+                    cout << "file \"" << filename << "\" open error" << endl;
+                }
+                else {
+                    string buf, text = "";
+                    while (getline(ifs, buf))
+                    {
+                        text.append(buf);
+                        text.append(" ");
+                    }
+                    Document* dd = new Document(text);
+                    suspiciousDocuments.push_back(*dd);
+
+                }
+                ifs.close();
+            }
+        }
+        else if (command == "testpan")
+        {   //测试pan数据库
+            string profix, filename;
+            profix = "suspicious-document";
+            for (int filenum = 1; filenum <= 11; filenum++) //093
+            {
+                filename = profix;
+                string tail = to_string(filenum);
+                for (size_t i = 0; i < 5 - tail.length(); i++)
+                {
+                    filename = filename + "0";
+                }
+                filename = filename + tail + ".xml";
+                
+
+                for (int refnum = 1; refnum <= 11; refnum++) //093
+                {
+                    calSimilarity(suspiciousDocuments[filenum - 1], dataDocuments[refnum - 1], 40, 0.6, filename); break;
+                }
             }
         }
         else if (command == "test")
         {   //测试，比较document 1和2的相似度
             /*
-            for (size_t i = 38; i <= 43; i++)
+            for (size_t i = 4; i <= 5; i++)
                 {
                     cout << dataDocuments[0].tokens[i].content << " ";
                 }
                 cout << endl;
-                for (size_t i = 56; i <= 61; i++)
+                for (size_t i = 98; i <= 99; i++)
                 {
                     cout << dataDocuments[1].tokens[i].content << " ";
-                }
+                }   
+
+
+
                 cout << endl;*/
-            calSimilarity(dataDocuments[0], dataDocuments[1], 50, 0.6);
+            //calSimilarity(dataDocuments[0], dataDocuments[1], 40, 0.6);
 
         }
         else if (command == "tt")
         {
 
-            for (size_t i = 0; i < dataDocuments.size(); i++)
-            {
-                runtest(dataDocuments[i], 40, 0);
-            }
         }
         else if (command == "tree")
         {
